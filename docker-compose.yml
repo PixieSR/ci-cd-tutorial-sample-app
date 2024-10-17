@@ -1,0 +1,27 @@
+version: '3'
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: sampledb
+      POSTGRES_USER: sampleuser
+      POSTGRES_PASSWORD: samplepassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  app:
+    image: your-dockerhub-username/sample-app:latest
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://sampleuser:samplepassword@db:5432/sampledb
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/sample-app
+
+volumes:
+  db_data:
