@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   web:
+    container_name: ci-cd-sample
     build: .
     ports:
       - "8000:8000"
