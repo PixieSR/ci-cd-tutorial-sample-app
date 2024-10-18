@@ -1,42 +1,44 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:latest
-    environment:
-      POSTGRES_DB: DB
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: a1a1a1
-    ports:
-      - "5432:5432"
-    volumes:
-      - db:/var/lib/postgresql/data
-    networks:
-      - ci_network
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      - postgres
-    environment:
-      DATABASE_URL: postgresql://admin:a1a1a1@postgres:5432/DB
-      TEST_DATABASE_URL: postgresql://admin:a1a1a1@postgres/test_db
+  web:
+    build: .
+    command: /bin/sh -c "flask db upgrade && gunicorn app:app -b 0.0.0.0:8000 --timeout 120"
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy  # Wait until the database is healthy
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@db:5432/sampledb
+    volumes:
+      - .:/sample-app
     networks:
-      - ci_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d DB"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - app-network
 
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=sampledb
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
 
 networks:
-  ci_network:
+  app-network:
     driver: bridge
 
 volumes:
-  db:
+  pgdata:
