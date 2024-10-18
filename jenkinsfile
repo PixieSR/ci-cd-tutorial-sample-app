@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('sharon-docker')
+        DOCKER_IMAGE = 'sharonpixie/ci-cdsample-app'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/PixieSR/ci-cd-tutorial-sample-app.git'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build -t ${DOCKER_IMAGE}:latest .
+                '''
+            }
+        }
+        stage('Run Application with Docker Compose') {
+            steps {
+                sh 'docker-compose up -d'
+            }
+        }
+        stage('Run Tests with Coverage') {
+            steps {
+                sh '''
+                    # Run pytest with coverage using python -m
+                    docker exec ci-cd-sample python3 -m coverage run -m pytest
+                    
+                    # Generate coverage report
+                    docker exec ci-cd-sample python3 -m coverage report
+                    
+                    # Generate HTML coverage report (optional)
+                    docker exec ci-cd-sample python3 -m coverage html
+                '''
+            }
+            post {
+                success {
+                    // Archive the coverage reports
+                    archiveArtifacts artifacts: 'htmlcov/**', allowEmptyArchive: true
+                }
+            }
+        }
+        stage('Push to Docker Hub') {
+            steps {
+                sh '''
+                    echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
+                    docker push ${DOCKER_IMAGE}:latest
+                '''
+            }
+        }
+    }
+    post {
+        always {
+            // Clean up Docker Compose setup
+            sh 'docker-compose down'
+            sh 'docker logout'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
