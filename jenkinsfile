@@ -16,7 +16,6 @@ pipeline {
         }
         stage('Build and Run Docker Image') {
             steps {
-                // Build the Docker image and start the application using Docker Compose
                 sh '''
                     docker build -t ${DOCKER_IMAGE}:latest .
                     docker-compose up -d
@@ -25,7 +24,6 @@ pipeline {
         }
         stage('Check if App is Running') {
             steps {
-                // Check if the application is responding with HTTP 200 OK
                 script {
                     def response = sh(script: "curl -o /dev/null -s -w \"%{http_code}\" ${APP_URL}", returnStdout: true).trim()
                     if (response != '200') {
@@ -38,7 +36,6 @@ pipeline {
         }
         stage('Push to Docker Hub') {
             steps {
-                // Login to Docker Hub and push the Docker image
                 sh '''
                     echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
                     docker push ${DOCKER_IMAGE}:latest
@@ -48,7 +45,6 @@ pipeline {
     }
     post {
         always {
-            // Clean up Docker Compose setup and logout from Docker
             sh 'docker-compose down'
             sh 'docker logout'
         }
