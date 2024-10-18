@@ -2,5 +2,5 @@ Flask==1.1.2
 Flask-Migrate==2.5.3
 Flask-SQLAlchemy==2.4.4
 pytest
-coverage
+coverage==6.0
 psycopg2==2.9.8
