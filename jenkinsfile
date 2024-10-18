@@ -1,10 +1,10 @@
 pipeline {
     agent any
     environment {
-        DATABASE_URL = "postgres://admin:a1a1a1@postgres/DB"
-        TEST_DATABASE_URL = "postgres://admin:a1a1a1@postgres/test_db"
+        DATABASE_URL = "postgresql://admin:a1a1a1@postgres:5432/DB"
+        TEST_DATABASE_URL = "postgresql://admin:a1a1a1@postgres:5432/test_db"
         DOCKER_HUB_CREDENTIALS = credentials('sharon-docker')
-        DOCKER_IMAGE = 'sharonpixie/ci-cdsample-app'
+        DOCKER_IMAGE = 'sharonpixie/ci-cd-tutorial-sample-app'
     }
     stages {
         stage('Checkout') {
@@ -26,12 +26,13 @@ pipeline {
         }
         stage('Run Tests with Coverage') {
             steps {
-                sh 'docker-compose exec -T app coverage run -m unittest discover'
+                // Make sure the service name matches your app in docker-compose.yml
+                sh 'docker-compose exec -T web coverage run -m unittest discover'
             }
-        }
             post {
                 success {
-                    // Archive the coverage reports
+                    // Generate coverage report and archive it
+                    sh 'docker-compose exec -T web coverage html'
                     archiveArtifacts artifacts: 'htmlcov/**', allowEmptyArchive: true
                 }
             }
