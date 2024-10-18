@@ -1,41 +1,40 @@
 version: '3.8'
-
 services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://admin:admin@postgres:5432/DB
-      TEST_DATABASE_URL: postgresql://admin:admin@postgres/test_db
+      - FLASK_APP=app.py
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/tutorial
     ports:
       - "8000:8000"
     networks:
-      - app_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d DB"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - tutorial_network
 
   postgres:
-    image: postgres:latest
+    image: postgres:12
     environment:
-      POSTGRES_DB: DB
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=tutorial
     ports:
       - "5432:5432"
     volumes:
-      - db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - app_network
-      
+      - tutorial_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d tutorial"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 networks:
-  app_network:
+  tutorial_network:
     driver: bridge
-    
+
 volumes:
-  db:
+  postgres_data:
